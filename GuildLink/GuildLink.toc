@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: GuildLink
+## Notes: Records your characters, professions and recipes for the GuildLink Discord bot. Use /guildlink to set your Discord user ID.
+## Author: GuildLink
+## Version: 0.1.0
+## SavedVariables: GuildLinkDB
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+## AddonCompartmentFunc: GuildLink_OnAddonCompartmentClick
+
+# Seed.lua is rewritten by the GuildLink companion app. It restores the
+# previous session's data because the Forever beta client does not load
+# SavedVariables at startup. It must stay first.
+Seed.lua
+Core.lua
+Scan.lua
+UI.lua

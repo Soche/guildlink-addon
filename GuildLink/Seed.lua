@@ -1,0 +1,2 @@
+-- Placeholder. The GuildLink companion app overwrites this file with the
+-- contents of your last GuildLinkDB SavedVariables file.
