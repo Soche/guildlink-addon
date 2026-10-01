@@ -80,6 +80,7 @@ function ns.RefreshUI()
   end
 
   local c = ns.CurrentCharacter()
+  if not c then return end
   local lines = {}
   lines[#lines + 1] = ("%s, level %s %s"):format(c.name or "?", tostring(c.level or "?"), c.className or c.class or "")
   lines[#lines + 1] = "Guild: " .. (c.guild or "none")

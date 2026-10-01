@@ -32,18 +32,49 @@ local function EnsureDB()
   ns.db = db
 end
 
-function ns.CharacterKey()
-  local name = UnitName("player")
+local function IsPlaceholderName(name)
+  return not name or name == "" or name == UNKNOWNOBJECT or name == UNKNOWN or name == "Unknown"
+end
+
+local function PlayerRealm()
   local realm = GetNormalizedRealmName and GetNormalizedRealmName() or nil
   if not realm or realm == "" then
     realm = GetRealmName and GetRealmName() or ""
   end
-  return name .. "-" .. (realm or ""), name, realm or ""
+  return realm or ""
 end
 
--- Returns the saved entry for the logged-in character, creating it if needed.
+-- Forever characters have a first name and a surname, and the client
+-- returns the surname where retail returns the realm: UnitFullName("player")
+-- gives "First", "Surname". GetUnitName("player", true) gives the full
+-- "First Surname". Returns the full name and the first name alone.
+function ns.PlayerName()
+  local first, second = UnitFullName("player")
+  if IsPlaceholderName(first) then return nil end
+  local full = GetUnitName and GetUnitName("player", true)
+  if full and full:find(" ", 1, true) and not IsPlaceholderName(full) then
+    return full, first
+  end
+  if second and second ~= "" and second ~= PlayerRealm() then
+    return first .. " " .. second, first
+  end
+  return first, first
+end
+
+function ns.CharacterKey()
+  local name, first = ns.PlayerName()
+  if not name then return nil end
+  local realm = PlayerRealm()
+  return name .. "-" .. realm, name, realm, first
+end
+
+-- Returns the saved entry for the logged-in character, creating it if
+-- needed, or nil while the character's name is not loaded yet (the client
+-- reports "Unknown" for a moment around login).
 function ns.CurrentCharacter()
+  if not ns.db or not IsLoggedIn() then return nil end
   local key, name, realm = ns.CharacterKey()
+  if not key then return nil end
   local c = ns.db.characters[key]
   if type(c) ~= "table" then
     c = {}
@@ -57,6 +88,26 @@ function ns.CurrentCharacter()
   return c
 end
 
+-- Drops entries saved by older versions: ones recorded under the "Unknown"
+-- placeholder, and this character's entry saved under its first name only.
+-- Profession data from the old entry is kept if the new one has none.
+function ns.PruneLegacyEntries()
+  local key, name, realm, first = ns.CharacterKey()
+  if not key then return end
+  local current = ns.CurrentCharacter()
+  if not current then return end
+  for k, c in pairs(ns.db.characters) do
+    if type(c) ~= "table" or IsPlaceholderName(c.name) then
+      ns.db.characters[k] = nil
+    elseif k ~= key and name ~= first and c.name == first and (c.realm or "") == realm then
+      if next(current.professions) == nil and type(c.professions) == "table" then
+        current.professions = c.professions
+      end
+      ns.db.characters[k] = nil
+    end
+  end
+end
+
 function ns.Touch(c)
   c.updatedAt = time()
   ns.db.updatedAt = c.updatedAt
@@ -64,6 +115,7 @@ end
 
 function ns.UpdateBasics()
   local c = ns.CurrentCharacter()
+  if not c then return end
   local className, classFile = UnitClass("player")
   c.class = classFile
   c.className = className
@@ -110,16 +162,19 @@ local handlers = {}
 ns.handlers = handlers
 
 -- The Forever client raises an error when registering an event it does not
--- know, so every registration is guarded.
+-- know, so every registration is guarded. An event may have several handlers.
 function ns.RegisterEvent(event, fn)
-  if pcall(frame.RegisterEvent, frame, event) then
-    handlers[event] = fn
+  if handlers[event] then
+    table.insert(handlers[event], fn)
+  elseif pcall(frame.RegisterEvent, frame, event) then
+    handlers[event] = { fn }
   end
 end
 
 frame:SetScript("OnEvent", function(_, event, ...)
-  local fn = handlers[event]
-  if fn then fn(event, ...) end
+  for _, fn in ipairs(handlers[event] or {}) do
+    fn(event, ...)
+  end
 end)
 
 ns.RegisterEvent("ADDON_LOADED", function(_, name)
@@ -129,6 +184,7 @@ end)
 
 ns.RegisterEvent("PLAYER_LOGIN", function()
   if not ns.db then EnsureDB() end
+  ns.PruneLegacyEntries()
   ns.UpdateBasics()
   if not ns.db.discordId then
     ns.Print("No Discord user ID set. Type /guildlink to add it.")
@@ -136,6 +192,11 @@ ns.RegisterEvent("PLAYER_LOGIN", function()
 end)
 
 local function OnBasicsChanged() ns.UpdateBasics() end
+-- The name can still be "Unknown" at PLAYER_LOGIN; retry once it has loaded.
+ns.RegisterEvent("PLAYER_ENTERING_WORLD", function()
+  ns.PruneLegacyEntries()
+  ns.UpdateBasics()
+end)
 ns.RegisterEvent("PLAYER_LEVEL_UP", function()
   -- UnitLevel lags behind PLAYER_LEVEL_UP by a frame.
   C_Timer.After(1, OnBasicsChanged)

@@ -10,6 +10,7 @@ local reportedCounts = {}
 function ns.UpdateProfessions()
   if not GetProfessions then return end
   local c = ns.CurrentCharacter()
+  if not c then return end
   local seen = {}
   local indices = { GetProfessions() }
   -- GetProfessions returns prof1, prof2, archaeology, fishing, cooking; any
@@ -80,6 +81,7 @@ function ns.ScanOpenTradeSkill()
   if count == 0 then return end
 
   local c = ns.CurrentCharacter()
+  if not c then return end
   local p = c.professions[base.professionID]
   if type(p) ~= "table" then
     p = {}
