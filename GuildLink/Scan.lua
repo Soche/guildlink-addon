@@ -54,6 +54,31 @@ local function IsOwnTradeSkill(T)
   return true
 end
 
+-- The profession window's own grouping, e.g. "Enchant Bracer" or "Leg Armor".
+local categoryNames = {}
+local function CategoryName(T, categoryID)
+  if not categoryID or not T.GetCategoryInfo then return nil end
+  if categoryNames[categoryID] == nil then
+    local ok, data = pcall(T.GetCategoryInfo, categoryID)
+    categoryNames[categoryID] = ok and type(data) == "table" and data.name or false
+  end
+  return categoryNames[categoryID] or nil
+end
+
+-- Item class, subclass and equip slot of what the recipe makes, which the bot
+-- uses to sort recipes into categories such as Weapons > Maces or Armor > Legs.
+-- GetItemInfoInstant answers without waiting for the item cache.
+local function AddItemClass(recipe, itemID)
+  if not itemID or not (C_Item and C_Item.GetItemInfoInstant) then return end
+  local ok, _, _, _, equipLoc, _, classID, subclassID = pcall(C_Item.GetItemInfoInstant, itemID)
+  if not ok then return end
+  recipe.classID = classID
+  recipe.subclassID = subclassID
+  if equipLoc and equipLoc ~= "" then
+    recipe.equipLoc = equipLoc
+  end
+end
+
 function ns.ScanOpenTradeSkill()
   local T = C_TradeSkillUI
   if not T or not IsOwnTradeSkill(T) then return end
@@ -71,7 +96,14 @@ function ns.ScanOpenTradeSkill()
       if ok and type(output) == "table" then
         itemID = output.itemID
       end
-      recipes[recipeID] = { name = info.name, itemID = itemID }
+      local recipe = {
+        name = info.name,
+        itemID = itemID,
+        enchant = info.isEnchantingRecipe or nil,
+        category = CategoryName(T, info.categoryID),
+      }
+      AddItemClass(recipe, itemID)
+      recipes[recipeID] = recipe
       count = count + 1
     end
   end
