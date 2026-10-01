@@ -79,6 +79,29 @@ local function AddItemClass(recipe, itemID)
   end
 end
 
+-- Basic (required) reagents: { { itemID, count, name }, ... }. Optional and
+-- finishing reagent slots are left out. Names of items the client has not
+-- cached yet are requested, so the next scan has them.
+local BASIC_REAGENT = Enum and Enum.CraftingReagentType and Enum.CraftingReagentType.Basic or 1
+local function ReagentsFor(T, recipeID)
+  if not T.GetRecipeSchematic then return nil end
+  local ok, schematic = pcall(T.GetRecipeSchematic, recipeID, false)
+  if not ok or type(schematic) ~= "table" or type(schematic.reagentSlotSchematics) ~= "table" then return nil end
+  local reagents = {}
+  for _, slot in ipairs(schematic.reagentSlotSchematics) do
+    local basic = slot.reagentType == BASIC_REAGENT or (slot.reagentType == nil and slot.required)
+    local first = type(slot.reagents) == "table" and slot.reagents[1]
+    if basic and first and first.itemID then
+      local name = C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(first.itemID)
+      if not name and C_Item and C_Item.RequestLoadItemDataByID then
+        pcall(C_Item.RequestLoadItemDataByID, first.itemID)
+      end
+      reagents[#reagents + 1] = { itemID = first.itemID, count = slot.quantityRequired or 1, name = name }
+    end
+  end
+  return #reagents > 0 and reagents or nil
+end
+
 function ns.ScanOpenTradeSkill()
   local T = C_TradeSkillUI
   if not T or not IsOwnTradeSkill(T) then return end
@@ -101,6 +124,7 @@ function ns.ScanOpenTradeSkill()
         itemID = itemID,
         enchant = info.isEnchantingRecipe or nil,
         category = CategoryName(T, info.categoryID),
+        reagents = ReagentsFor(T, recipeID),
       }
       AddItemClass(recipe, itemID)
       recipes[recipeID] = recipe

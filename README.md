@@ -33,7 +33,8 @@ GuildLinkDB = {
         [171] = { name = "Alchemy", rank = 50, maxRank = 75, scannedAt = 1790000000,
                   recipes = { [2330] = { name = "Minor Healing Potion", itemID = 118,
                                          classID = 0, subclassID = 1, equipLoc = nil,   -- C_Item.GetItemInfoInstant
-                                         enchant = nil, category = "Potions" } } },     -- profession window category
+                                         enchant = nil, category = "Potions",           -- profession window category
+                                         reagents = { { itemID = 2447, count = 1, name = "Peacebloom" } } } } },  -- basic reagents only
       },
     },
   },
