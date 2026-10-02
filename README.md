@@ -28,7 +28,7 @@ GuildLinkDB = {
   discordId = "123456789012345678",
   characters = {
     ["Thrall-Realm"] = {
-      name, realm, class, className, race, faction, level, guild, guildRank, updatedAt,
+      name, realm, region, class, className, race, faction, level, guild, guildRank, updatedAt,
       professions = {
         [171] = { name = "Alchemy", rank = 50, maxRank = 75, scannedAt = 1790000000,
                   recipes = { [2330] = { name = "Minor Healing Potion", itemID = 118,

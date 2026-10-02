@@ -122,6 +122,13 @@ function ns.UpdateBasics()
   c.level = UnitLevel("player")
   c.race = select(2, UnitRace("player"))
   c.faction = UnitFactionGroup("player")
+  -- Forever names are unique per region ("EU", "US", ...), not worldwide.
+  if GetCurrentRegionName then
+    local ok, region = pcall(GetCurrentRegionName)
+    if ok and type(region) == "string" and region ~= "" then
+      c.region = region
+    end
+  end
 
   if IsInGuild() then
     local guildName, rankName = GetGuildInfo("player")
