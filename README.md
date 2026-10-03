@@ -4,7 +4,13 @@ A World of Warcraft: Forever addon (Interface 16001). It records each of your ch
 
 ## Install
 
-Copy the `GuildLink` folder into `World of Warcraft/_classic_beta_/Interface/AddOns/`. That is the Forever beta's folder; the release client may use another one.
+The easiest way is the GuildLink companion app. It installs the addon and keeps it up to date, so you don't download it yourself.
+
+To install by hand, get `GuildLink-<version>.zip` from [Releases](https://github.com/Soche/guildlink-addon/releases). Unzip it into `World of Warcraft/_classic_beta_/Interface/AddOns/`. That is the Forever beta's folder; the release client may use another one.
+
+## Releasing
+
+Bump `## Version:` in `GuildLink.toc`, commit, and push a matching tag (`v0.6.0` for version `0.6.0`). The workflow refuses mismatched tags, zips the addon, and publishes it with `SHA256SUMS`. Companions pick it up at their next check, within about six hours.
 
 ## Use
 

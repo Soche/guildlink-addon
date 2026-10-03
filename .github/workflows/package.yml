@@ -12,6 +12,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The companion compares the release tag with the TOC version to decide
+      # whether an installed addon is out of date, so they must agree.
+      - name: Check the TOC version matches the tag
+        run: |
+          toc=$(sed -n 's/^## Version: *//p' GuildLink/GuildLink.toc | tr -d '\r')
+          if [ "v$toc" != "$GITHUB_REF_NAME" ]; then
+            echo "GuildLink.toc says $toc but the tag is $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
       - run: zip -r "GuildLink-${GITHUB_REF_NAME}.zip" GuildLink
+      # The companion verifies downloads against this before installing.
+      - run: sha256sum "GuildLink-${GITHUB_REF_NAME}.zip" > SHA256SUMS
       - uses: softprops/action-gh-release@v2
-        with: { files: "GuildLink-*.zip" }
+        with:
+          files: |
+            GuildLink-*.zip
+            SHA256SUMS
