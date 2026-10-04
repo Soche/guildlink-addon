@@ -34,7 +34,7 @@ GuildLinkDB = {
   discordId = "123456789012345678",
   characters = {
     ["Thrall-Realm"] = {
-      name, realm, region, class, className, race, faction, level, guild, guildRank, updatedAt,
+      name, realm, region, class, className, race, faction, level, guild, guildRank, guildRankIndex, updatedAt,
       professions = {
         [171] = { name = "Alchemy", rank = 50, maxRank = 75, scannedAt = 1790000000,
                   recipes = { [2330] = { name = "Minor Healing Potion", itemID = 118,
@@ -43,6 +43,11 @@ GuildLinkDB = {
                                          reagents = { { itemID = 2447, count = 1, name = "Peacebloom" } } } } },  -- basic reagents only
       },
     },
+  },
+  guildRosters = {  -- newest in-game roster per guild, for Discord rank roles (complete rosters only)
+    ["Nobility"] = { guild = "Nobility", region = "EU", scannedAt = 1790000000,
+                     ranks = { [0] = "Guild Master", [1] = "Officer" },
+                     members = { { name = "Soche-Lightbringer", rankIndex = 1 } } },
   },
   instances = {   -- dungeons and raids entered, from GetInstanceInfo()
     [2050] = { name = "Hyjal Summit", kind = "raid", maxPlayers = 20, seenAt = 1790000000 },

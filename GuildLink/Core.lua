@@ -131,16 +131,19 @@ function ns.UpdateBasics()
   end
 
   if IsInGuild() then
-    local guildName, rankName = GetGuildInfo("player")
+    local guildName, rankName, rankIndex = GetGuildInfo("player")
     -- GetGuildInfo returns nil for a moment after login even when the
     -- character is in a guild; keep the last known value until it loads.
     if guildName then
       c.guild = guildName
       c.guildRank = rankName
+      -- 0 is the Guild Master; higher numbers are lower ranks.
+      c.guildRankIndex = rankIndex
     end
   else
     c.guild = nil
     c.guildRank = nil
+    c.guildRankIndex = nil
   end
   ns.Touch(c)
   if ns.RefreshUI then ns.RefreshUI() end
