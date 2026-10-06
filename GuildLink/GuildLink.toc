@@ -2,7 +2,7 @@
 ## Title: GuildLink
 ## Notes: Records your characters, professions and recipes for the GuildLink Discord bot. Use /guildlink to set your Discord user ID.
 ## Author: GuildLink
-## Version: 0.6.0
+## Version: 0.7.0
 ## SavedVariables: GuildLinkDB
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## AddonCompartmentFunc: GuildLink_OnAddonCompartmentClick
@@ -15,4 +15,5 @@ Core.lua
 Scan.lua
 Instances.lua
 Roster.lua
+Bank.lua
 UI.lua
