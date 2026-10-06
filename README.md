@@ -17,7 +17,7 @@ Bump `## Version:` in `GuildLink.toc`, commit, and push a matching tag (`v0.6.0`
 1. In Discord, run `/link` in your server. It gives you the companion app's server address and token.
 2. In game, type `/guildlink` (or `/glink`) and paste your **Discord user ID**. To copy it, turn on Discord Settings > Advanced > Developer Mode, then right-click your name and choose Copy User ID.
 3. Open each profession window once so its recipes are recorded. They are re-read every time you open the window.
-4. Opening the guild vault records the bank tabs you can see, for `/bank` in Discord.
+4. Opening the guild vault records the bank tabs you can see, for `/bank` in Discord. Guild Master: open Guild Control's bank tab permissions and click through the ranks once, so Discord gets the exact per-rank settings.
 5. Dungeons and raids you enter are recorded automatically, so the bot learns their exact names and sizes.
 6. Log out or `/reload`. The game writes the data to disk then, and the companion uploads it.
 
@@ -53,7 +53,7 @@ GuildLinkDB = {
   guildBanks = {  -- what this account saw at the guild vault, per guild; tabs the character may view
     ["Nobility"] = { guild = "Nobility", region = "EU", scannedAt = 1790000000, money = 1234567, numTabs = 3,
                      observed = { [2] = { at = 1790000000, tabs = { [1] = true, [3] = false } } },    -- per rank: tabs it can view
-                     permissions = { at = 1790000000, ranks = { [0] = { [1] = true, [3] = true } } },  -- Guild Master only: Guild Control settings
+                     settings = { [1] = { at = 1790000000, tabs = { [1] = true, [3] = false } } },     -- per rank, read while the GM browses Guild Control
                      tabs = { [1] = { name = "Mats", scannedAt = 1790000000,
                                       items = { { slot = 1, itemID = 2840, name = "Copper Bar", count = 20, quality = 1 } } } } },
   },

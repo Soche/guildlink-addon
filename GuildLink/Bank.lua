@@ -87,31 +87,32 @@ local function RecordOwnAccess(bank, numTabs)
   return rankIndex, tabs
 end
 
--- The guild's actual tab settings for every rank, as in Guild Control.
--- Only the Guild Master is known to be allowed to read them; the result is
--- kept only if it agrees with what the GM's own character can see.
-local function RecordGuildSettings(bank, numTabs, ownRank, ownTabs)
-  if not (IsGuildLeader and IsGuildLeader()) or not GuildControlSetRank or not GetGuildBankTabPermissions then return end
-  if GuildControlUI and GuildControlUI:IsShown() then return end -- don't disturb the open editor
-  local ok, ranks = pcall(function()
+-- The guild's tab settings per rank, as in Guild Control. Selecting a rank
+-- ourselves (GuildControlSetRank) is protected on this client, so instead
+-- this reads along whenever the Guild Control window selects one: the Guild
+-- Master browsing the bank tab permissions fills them in rank by rank.
+local function CaptureSelectedRank(rank)
+  if not ns.db or not GetGuildBankTabPermissions or type(rank) ~= "number" then return end
+  if InCombatLockdown and InCombatLockdown() then return end
+  local bank = CurrentBank()
+  local numTabs = bank and (bank.numTabs or (GetNumGuildBankTabs and GetNumGuildBankTabs())) or 0
+  if not bank or numTabs == 0 then return end
+  local ok, tabs = pcall(function()
     local result = {}
-    for rank = 1, GuildControlGetNumRanks() do
-      GuildControlSetRank(rank)
-      local tabs = {}
-      for tab = 1, numTabs do
-        local canView = GetGuildBankTabPermissions(tab)
-        tabs[tab] = canView and true or false
-      end
-      -- Guild Control ranks are 1-based; roster ranks are 0-based.
-      result[rank - 1] = tabs
+    for tab = 1, numTabs do
+      local canView = GetGuildBankTabPermissions(tab)
+      result[tab] = canView and true or false
     end
     return result
   end)
-  if not ok or type(ranks) ~= "table" or type(ranks[ownRank]) ~= "table" then return end
-  for tab = 1, numTabs do
-    if ranks[ownRank][tab] ~= ownTabs[tab] then return end
-  end
-  bank.permissions = { at = time(), ranks = ranks }
+  if not ok then return end
+  if type(bank.settings) ~= "table" then bank.settings = {} end
+  -- Guild Control ranks are 1-based; roster ranks are 0-based.
+  bank.settings[rank - 1] = { at = time(), tabs = tabs }
+end
+
+if hooksecurefunc and GuildControlSetRank then
+  hooksecurefunc("GuildControlSetRank", CaptureSelectedRank)
 end
 
 local function OnVaultOpened()
@@ -126,8 +127,10 @@ local function OnVaultOpened()
   -- bought yet still has gold worth uploading.
   bank.numTabs = numTabs
   bank.scannedAt = time()
-  local ownRank, ownTabs = RecordOwnAccess(bank, numTabs)
-  if ownRank then RecordGuildSettings(bank, numTabs, ownRank, ownTabs) end
+  RecordOwnAccess(bank, numTabs)
+  -- Version 0.7.0/0.7.1 stored unreliable settings here (the rank switch
+  -- they relied on is blocked); drop them so they're not uploaded.
+  bank.permissions = nil
   queue = {}
   for tab = 1, numTabs do
     local _, _, isViewable = GetGuildBankTabInfo(tab)
@@ -173,3 +176,13 @@ ns.RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE", function(_, kind)
 end)
 ns.RegisterEvent("GUILDBANKFRAME_OPENED", OnVaultOpened)
 ns.RegisterEvent("GUILDBANKFRAME_CLOSED", OnVaultClosed)
+
+-- Drop settings saved by 0.7.0/0.7.1 at login too, for guilds whose vault
+-- isn't opened again soon.
+ns.RegisterEvent("PLAYER_LOGIN", function()
+  if ns.db and type(ns.db.guildBanks) == "table" then
+    for _, bank in pairs(ns.db.guildBanks) do
+      if type(bank) == "table" then bank.permissions = nil end
+    end
+  end
+end)
