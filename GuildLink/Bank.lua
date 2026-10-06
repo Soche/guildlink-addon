@@ -122,6 +122,10 @@ local function OnVaultOpened()
   if not bank then return end
   if GetGuildBankMoney then bank.money = GetGuildBankMoney() end
   local numTabs = GetNumGuildBankTabs()
+  -- Stamp the visit now, not only when a tab is read: a bank with no tabs
+  -- bought yet still has gold worth uploading.
+  bank.numTabs = numTabs
+  bank.scannedAt = time()
   local ownRank, ownTabs = RecordOwnAccess(bank, numTabs)
   if ownRank then RecordGuildSettings(bank, numTabs, ownRank, ownTabs) end
   queue = {}
@@ -131,7 +135,11 @@ local function OnVaultOpened()
   end
   local n = #queue
   NextTab()
-  if n > 0 then ns.Print(("Reading %d guild bank tab%s for Discord."):format(n, n == 1 and "" or "s")) end
+  if n > 0 then
+    ns.Print(("Reading %d guild bank tab%s for Discord."):format(n, n == 1 and "" or "s"))
+  else
+    ns.Print("Recorded the guild bank's gold for Discord (no tabs to read).")
+  end
 end
 
 local function OnVaultClosed()
@@ -148,7 +156,10 @@ end)
 
 ns.RegisterEvent("GUILDBANK_UPDATE_MONEY", function()
   local bank = vaultOpen and CurrentBank()
-  if bank and GetGuildBankMoney then bank.money = GetGuildBankMoney() end
+  if bank and GetGuildBankMoney then
+    bank.money = GetGuildBankMoney()
+    bank.scannedAt = time()
+  end
 end)
 
 -- Retail-based clients announce the vault through the interaction manager;
