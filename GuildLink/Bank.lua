@@ -72,6 +72,48 @@ local function NextTab()
   timeoutTimer = C_Timer.NewTimer(TAB_TIMEOUT, NextTab)
 end
 
+-- Which tabs this character's rank can view, from what the game shows it.
+-- Kept per rank, so characters of different ranks on one account all count.
+local function RecordOwnAccess(bank, numTabs)
+  local _, _, rankIndex = GetGuildInfo("player")
+  if not rankIndex then return nil end
+  local tabs = {}
+  for tab = 1, numTabs do
+    local _, _, isViewable = GetGuildBankTabInfo(tab)
+    tabs[tab] = isViewable and true or false
+  end
+  if type(bank.observed) ~= "table" then bank.observed = {} end
+  bank.observed[rankIndex] = { at = time(), tabs = tabs }
+  return rankIndex, tabs
+end
+
+-- The guild's actual tab settings for every rank, as in Guild Control.
+-- Only the Guild Master is known to be allowed to read them; the result is
+-- kept only if it agrees with what the GM's own character can see.
+local function RecordGuildSettings(bank, numTabs, ownRank, ownTabs)
+  if not (IsGuildLeader and IsGuildLeader()) or not GuildControlSetRank or not GetGuildBankTabPermissions then return end
+  if GuildControlUI and GuildControlUI:IsShown() then return end -- don't disturb the open editor
+  local ok, ranks = pcall(function()
+    local result = {}
+    for rank = 1, GuildControlGetNumRanks() do
+      GuildControlSetRank(rank)
+      local tabs = {}
+      for tab = 1, numTabs do
+        local canView = GetGuildBankTabPermissions(tab)
+        tabs[tab] = canView and true or false
+      end
+      -- Guild Control ranks are 1-based; roster ranks are 0-based.
+      result[rank - 1] = tabs
+    end
+    return result
+  end)
+  if not ok or type(ranks) ~= "table" or type(ranks[ownRank]) ~= "table" then return end
+  for tab = 1, numTabs do
+    if ranks[ownRank][tab] ~= ownTabs[tab] then return end
+  end
+  bank.permissions = { at = time(), ranks = ranks }
+end
+
 local function OnVaultOpened()
   -- Both "opened" events may fire for one visit.
   if vaultOpen or not ns.db or not GetNumGuildBankTabs then return end
@@ -79,8 +121,11 @@ local function OnVaultOpened()
   local bank = CurrentBank()
   if not bank then return end
   if GetGuildBankMoney then bank.money = GetGuildBankMoney() end
+  local numTabs = GetNumGuildBankTabs()
+  local ownRank, ownTabs = RecordOwnAccess(bank, numTabs)
+  if ownRank then RecordGuildSettings(bank, numTabs, ownRank, ownTabs) end
   queue = {}
-  for tab = 1, GetNumGuildBankTabs() do
+  for tab = 1, numTabs do
     local _, _, isViewable = GetGuildBankTabInfo(tab)
     if isViewable then queue[#queue + 1] = tab end
   end

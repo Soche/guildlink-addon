@@ -52,6 +52,8 @@ GuildLinkDB = {
   },
   guildBanks = {  -- what this account saw at the guild vault, per guild; tabs the character may view
     ["Nobility"] = { guild = "Nobility", region = "EU", scannedAt = 1790000000, money = 1234567, numTabs = 3,
+                     observed = { [2] = { at = 1790000000, tabs = { [1] = true, [3] = false } } },    -- per rank: tabs it can view
+                     permissions = { at = 1790000000, ranks = { [0] = { [1] = true, [3] = true } } },  -- Guild Master only: Guild Control settings
                      tabs = { [1] = { name = "Mats", scannedAt = 1790000000,
                                       items = { { slot = 1, itemID = 2840, name = "Copper Bar", count = 20, quality = 1 } } } } },
   },
