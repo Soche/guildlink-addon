@@ -68,3 +68,24 @@ ns.RegisterEvent("PLAYER_ENTERING_WORLD", function()
     pcall(C_GuildInfo.GuildRoster)
   end
 end)
+
+-- Rosters and bank snapshots are kept per guild, so a guild a character has
+-- left would linger and keep being uploaded. At login, drop those of guilds
+-- none of this account's characters is in anymore.
+function ns.PruneOtherGuilds()
+  if not ns.db or type(ns.db.characters) ~= "table" then return end
+  local current = {}
+  for _, c in pairs(ns.db.characters) do
+    if type(c) == "table" and type(c.guild) == "string" then current[c.guild:lower()] = true end
+  end
+  for _, key in ipairs({ "guildRosters", "guildBanks" }) do
+    local byGuild = ns.db[key]
+    if type(byGuild) == "table" then
+      for guild in pairs(byGuild) do
+        if type(guild) ~= "string" or not current[guild:lower()] then byGuild[guild] = nil end
+      end
+    end
+  end
+end
+
+ns.RegisterEvent("PLAYER_LOGIN", function() ns.PruneOtherGuilds() end)
