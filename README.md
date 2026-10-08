@@ -17,9 +17,10 @@ Bump `## Version:` in `GuildLink.toc`, commit, and push a matching tag (`v0.6.0`
 1. In Discord, run `/link` in your server. It gives you the companion app's server address and token.
 2. In game, type `/guildlink` (or `/glink`) and paste your **Discord user ID**. To copy it, turn on Discord Settings > Advanced > Developer Mode, then right-click your name and choose Copy User ID.
 3. Open each profession window once so its recipes are recorded. They are re-read every time you open the window.
-4. Opening the guild vault records the bank tabs you can see, for `/bank` in Discord. Guild Master: open Guild Control's bank tab permissions and click through the ranks once, so Discord gets the exact per-rank settings.
-5. Dungeons and raids you enter are recorded automatically, so the bot learns their exact names and sizes.
-6. Log out or `/reload`. The game writes the data to disk then, and the companion uploads it.
+4. Your bags and gear are recorded as you play, and your bank when you visit the banker, for `/items` in Discord.
+5. Opening the guild vault records the bank tabs you can see, for `/bank` in Discord. Guild Master: open Guild Control's bank tab permissions and click through the ranks once, so Discord gets the exact per-rank settings.
+6. Dungeons and raids you enter are recorded automatically, so the bot learns their exact names and sizes.
+7. Log out or `/reload`. The game writes the data to disk then, and the companion uploads it.
 
 Other commands: `/guildlink id <id>` and `/guildlink status`.
 
