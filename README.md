@@ -6,7 +6,7 @@ A World of Warcraft: Forever addon (Interface 16001). It records each of your ch
 
 The easiest way is the GuildLink companion app. It installs the addon and keeps it up to date, so you don't download it yourself.
 
-To install by hand, get `GuildLink-<version>.zip` from [Releases](https://github.com/Soche/guildlink-addon/releases). Unzip it into `World of Warcraft/_classic_beta_/Interface/AddOns/`. That is the Forever beta's folder; the release client may use another one.
+To install by hand, get `GuildLink-<version>.zip` from [Releases](https://github.com/Soche/guildlink-addon/releases). Unzip it into `World of Warcraft/_forever_/Interface/AddOns/`, the Forever client's folder (during the beta it was `_classic_beta_`).
 
 ## Releasing
 
@@ -24,9 +24,9 @@ Bump `## Version:` in `GuildLink.toc`, commit, and push a matching tag (`v0.6.0`
 
 Other commands: `/guildlink id <id>` and `/guildlink status`.
 
-## About the Forever beta's SavedVariables bug
+## About the Forever client's SavedVariables bug
 
-The beta client writes SavedVariables on logout but does not load them at the next start. Without a workaround, every session starts empty. The companion app works around it by copying your last saved data into `GuildLink/Seed.lua`, which the addon runs before anything else (see `GuildLink.toc`). If you don't use the companion, only the current session's data gets saved, and you have to enter your Discord ID again each session. When Blizzard fixes the bug, the real SavedVariables load takes over and `Seed.lua` stops mattering.
+During the beta, the client wrote SavedVariables on logout but did not load them at the next start; it isn't yet known whether the release client fixes that. Without a workaround, every session starts empty. The companion app works around it by copying your last saved data into `GuildLink/Seed.lua`, which the addon runs before anything else (see `GuildLink.toc`). If you don't use the companion, only the current session's data gets saved, and you have to enter your Discord ID again each session. When Blizzard fixes the bug, the real SavedVariables load takes over and `Seed.lua` stops mattering.
 
 ## Saved data
 

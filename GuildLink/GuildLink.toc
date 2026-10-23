@@ -8,8 +8,8 @@
 ## AddonCompartmentFunc: GuildLink_OnAddonCompartmentClick
 
 # Seed.lua is rewritten by the GuildLink companion app. It restores the
-# previous session's data because the Forever beta client does not load
-# SavedVariables at startup. It must stay first.
+# previous session's data because the Forever client (at least during the
+# beta) does not load SavedVariables at startup. It must stay first.
 Seed.lua
 Core.lua
 Scan.lua
