@@ -36,12 +36,19 @@ local function IsPlaceholderName(name)
   return not name or name == "" or name == UNKNOWNOBJECT or name == UNKNOWN or name == "Unknown"
 end
 
+-- The realm as part of a character's key, e.g. "CAMWOWEU5Realm1PvE". At
+-- logout GetNormalizedRealmName can return nothing; the plain realm name
+-- then has spaces ("CAMWOW EU5 Realm 1 PvE"), which made a second, empty
+-- entry. So the first answer is kept, and the fallback is normalised the same way.
+local sessionRealm
 local function PlayerRealm()
+  if sessionRealm then return sessionRealm end
   local realm = GetNormalizedRealmName and GetNormalizedRealmName() or nil
-  if not realm or realm == "" then
-    realm = GetRealmName and GetRealmName() or ""
+  if realm and realm ~= "" then
+    sessionRealm = realm
+    return realm
   end
-  return realm or ""
+  return ((GetRealmName and GetRealmName() or ""):gsub("[%s%-]", ""))
 end
 
 -- Forever characters have a first name and a surname, and the client
@@ -97,7 +104,9 @@ function ns.PruneLegacyEntries()
   local current = ns.CurrentCharacter()
   if not current then return end
   for k, c in pairs(ns.db.characters) do
-    if type(c) ~= "table" or IsPlaceholderName(c.name) then
+    -- An entry never filled in (no level, never touched) is one of those
+    -- empty logout entries.
+    if type(c) ~= "table" or IsPlaceholderName(c.name) or (k ~= key and c.level == nil and c.updatedAt == nil) then
       ns.db.characters[k] = nil
     elseif k ~= key and name ~= first and c.name == first and (c.realm or "") == realm then
       if next(current.professions) == nil and type(c.professions) == "table" then
