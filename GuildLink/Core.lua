@@ -222,6 +222,8 @@ SlashCmdList.GUILDLINK = function(msg)
   cmd = (cmd or ""):lower()
   if cmd == "id" then
     ns.SetDiscordId(rest)
+  elseif cmd == "events" or cmd == "calendar" then
+    ns.ShowEvents()
   elseif cmd == "status" then
     local n = 0
     for _ in pairs(ns.db.characters) do n = n + 1 end

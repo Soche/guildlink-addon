@@ -2,7 +2,7 @@
 ## Title: GuildLink
 ## Notes: Records your characters, professions and recipes for the GuildLink Discord bot. Use /guildlink to set your Discord user ID.
 ## Author: GuildLink
-## Version: 0.8.0
+## Version: 0.9.0
 ## SavedVariables: GuildLinkDB
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## AddonCompartmentFunc: GuildLink_OnAddonCompartmentClick
@@ -11,6 +11,8 @@
 # previous session's data because the Forever client (at least during the
 # beta) does not load SavedVariables at startup. It must stay first.
 Seed.lua
+# Events.lua is also written by the companion: upcoming events from Discord.
+Events.lua
 Core.lua
 Scan.lua
 Instances.lua
@@ -18,3 +20,4 @@ Roster.lua
 Bank.lua
 Inventory.lua
 UI.lua
+Calendar.lua

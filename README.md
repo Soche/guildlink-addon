@@ -21,12 +21,13 @@ Bump `## Version:` in `GuildLink.toc`, commit, and push a matching tag (`v0.6.0`
 5. Opening the guild vault records the bank tabs you can see, for `/bank` in Discord. Guild Master: open Guild Control's bank tab permissions and click through the ranks once, so Discord gets the exact per-rank settings.
 6. Dungeons and raids you enter are recorded automatically, so the bot learns their exact names and sizes.
 7. Log out or `/reload`. The game writes the data to disk then, and the companion uploads it.
+8. Events scheduled in Discord come to the game calendar. The companion fetches upcoming events (the next 30 days in your Discord servers) into `GuildLink/Events.lua`. At login, if one is new or got a new time, a window lists them with an **Add** button each; the game only lets addons add calendar events from a click. Officers who can make guild events also get **For guild**, which adds a guild announcement the whole guild sees, so everyone else's list shows it as already in the calendar. **Skip** stops an event from being offered at login. Times are server time.
 
-Other commands: `/guildlink id <id>` and `/guildlink status`.
+Other commands: `/guildlink id <id>`, `/guildlink status` and `/guildlink events` (the events window).
 
 ## About the Forever client's SavedVariables bug
 
-During the beta, the client wrote SavedVariables on logout but did not load them at the next start; it isn't yet known whether the release client fixes that. Without a workaround, every session starts empty. The companion app works around it by copying your last saved data into `GuildLink/Seed.lua`, which the addon runs before anything else (see `GuildLink.toc`). If you don't use the companion, only the current session's data gets saved, and you have to enter your Discord ID again each session. When Blizzard fixes the bug, the real SavedVariables load takes over and `Seed.lua` stops mattering.
+During the beta, the client wrote SavedVariables on logout but did not load them at the next start. The release client (checked on launch day, 5 November 2026) loads them normally, so this only matters for the beta. Without a workaround, every session starts empty. The companion app works around it by copying your last saved data into `GuildLink/Seed.lua`, which the addon runs before anything else (see `GuildLink.toc`). If you don't use the companion, only the current session's data gets saved, and you have to enter your Discord ID again each session. When Blizzard fixes the bug, the real SavedVariables load takes over and `Seed.lua` stops mattering.
 
 ## Saved data
 
@@ -60,6 +61,9 @@ GuildLinkDB = {
   },
   instances = {   -- dungeons and raids entered, from GetInstanceInfo()
     [2050] = { name = "Hyjal Summit", kind = "raid", maxPlayers = 20, seenAt = 1790000000 },
+  },
+  calendar = {    -- Discord events by event ID: start time when added or last offered, and skipped ones
+    added = { [12] = 1790000000 }, seen = { [12] = 1790000000 }, skipped = { [13] = true },
   },
 }
 ```
