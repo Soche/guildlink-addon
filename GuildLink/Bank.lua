@@ -3,13 +3,18 @@ local _, ns = ...
 -- Guild bank contents can only be read while the guild vault is open, and
 -- only for tabs this character's rank may view. When the vault opens, each
 -- viewable tab is requested from the server in turn and recorded once its
--- data arrives. Saved per guild in GuildLinkDB.guildBanks; the bot keeps the
--- newest copy of each tab across everyone's uploads.
+-- data arrives, then each of those tabs' logs and the gold log. Saved per
+-- guild in GuildLinkDB.guildBanks; the bot keeps the newest copy of each tab
+-- and merges everyone's logs.
 
 local SLOTS_PER_TAB = MAX_GUILDBANK_SLOTS_PER_TAB or 98
-local TAB_TIMEOUT = 3
+-- QueryGuildBankLog takes this "tab" for the gold log.
+local MONEY_LOG_TAB = (MAX_GUILDBANK_TABS or 6) + 1
+local STEP_TIMEOUT = 3
 
-local queue, waitingTab, timeoutTimer, vaultOpen = {}, nil, nil, false
+-- Steps are { kind = "tab" | "log" | "money", tab = n }; waiting is the one
+-- whose data was requested.
+local queue, waiting, timeoutTimer, vaultOpen = {}, nil, nil, false
 
 local function ItemFromLink(link)
   local itemID = tonumber(link:match("item:(%d+)"))
@@ -57,19 +62,60 @@ local function RecordTab(tab)
   bank.scannedAt = time()
 end
 
-local function NextTab()
+-- The log gives times as "this long ago"; in hours.
+local function HoursAgo(years, months, days, hours)
+  return (((years or 0) * 365 + (months or 0) * 30 + (days or 0)) * 24) + (hours or 0)
+end
+
+local function RecordLog(tab)
+  local bank = CurrentBank()
+  if not bank or not GetNumGuildBankTransactions or not GetGuildBankTransaction then return end
+  local entries = {}
+  for i = 1, GetNumGuildBankTransactions(tab) or 0 do
+    local kind, name, link, count, tab1, tab2, years, months, days, hours = GetGuildBankTransaction(tab, i)
+    if kind then
+      local itemID, itemName
+      if link then itemID, itemName = ItemFromLink(link) end
+      entries[#entries + 1] = {
+        type = kind, name = name, itemID = itemID, itemName = itemName, count = count,
+        tab1 = tab1, tab2 = tab2, ago = HoursAgo(years, months, days, hours),
+      }
+    end
+  end
+  if type(bank.log) ~= "table" then bank.log = {} end
+  bank.log[tab] = { scannedAt = time(), entries = entries }
+end
+
+local function RecordMoneyLog()
+  local bank = CurrentBank()
+  if not bank or not GetNumGuildBankMoneyTransactions or not GetGuildBankMoneyTransaction then return end
+  local entries = {}
+  for i = 1, GetNumGuildBankMoneyTransactions() or 0 do
+    local kind, name, amount, years, months, days, hours = GetGuildBankMoneyTransaction(i)
+    if kind then
+      entries[#entries + 1] = { type = kind, name = name, amount = amount, ago = HoursAgo(years, months, days, hours) }
+    end
+  end
+  bank.moneyLog = { scannedAt = time(), entries = entries }
+end
+
+local function NextStep()
   if timeoutTimer then
     timeoutTimer:Cancel()
     timeoutTimer = nil
   end
-  waitingTab = table.remove(queue, 1)
-  if not waitingTab or not vaultOpen then
-    waitingTab = nil
+  waiting = table.remove(queue, 1)
+  if not waiting or not vaultOpen then
+    waiting = nil
     return
   end
-  QueryGuildBankTab(waitingTab)
+  if waiting.kind == "tab" then
+    QueryGuildBankTab(waiting.tab)
+  elseif QueryGuildBankLog then
+    QueryGuildBankLog(waiting.kind == "money" and MONEY_LOG_TAB or waiting.tab)
+  end
   -- If the server doesn't answer (e.g. throttled), move on.
-  timeoutTimer = C_Timer.NewTimer(TAB_TIMEOUT, NextTab)
+  timeoutTimer = C_Timer.NewTimer(STEP_TIMEOUT, NextStep)
 end
 
 -- Which tabs this character's rank can view, from what the game shows it.
@@ -132,12 +178,20 @@ local function OnVaultOpened()
   -- they relied on is blocked); drop them so they're not uploaded.
   bank.permissions = nil
   queue = {}
+  local logs = {}
   for tab = 1, numTabs do
     local _, _, isViewable = GetGuildBankTabInfo(tab)
-    if isViewable then queue[#queue + 1] = tab end
+    if isViewable then
+      queue[#queue + 1] = { kind = "tab", tab = tab }
+      logs[#logs + 1] = { kind = "log", tab = tab }
+    end
   end
   local n = #queue
-  NextTab()
+  if QueryGuildBankLog then
+    for _, step in ipairs(logs) do queue[#queue + 1] = step end
+    queue[#queue + 1] = { kind = "money" }
+  end
+  NextStep()
   if n > 0 then
     ns.Print(("Reading %d guild bank tab%s for Discord."):format(n, n == 1 and "" or "s"))
   else
@@ -151,9 +205,20 @@ local function OnVaultClosed()
 end
 
 ns.RegisterEvent("GUILDBANKBAGSLOTS_CHANGED", function()
-  if waitingTab then
-    RecordTab(waitingTab)
-    NextTab()
+  if waiting and waiting.kind == "tab" then
+    RecordTab(waiting.tab)
+    NextStep()
+  end
+end)
+
+ns.RegisterEvent("GUILDBANKLOG_UPDATE", function()
+  if not waiting then return end
+  if waiting.kind == "log" then
+    RecordLog(waiting.tab)
+    NextStep()
+  elseif waiting.kind == "money" then
+    RecordMoneyLog()
+    NextStep()
   end
 end)
 

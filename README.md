@@ -18,10 +18,11 @@ Bump `## Version:` in `GuildLink.toc`, commit, and push a matching tag (`v0.6.0`
 2. In game, type `/guildlink` (or `/glink`) and paste your **Discord user ID**. To copy it, turn on Discord Settings > Advanced > Developer Mode, then right-click your name and choose Copy User ID.
 3. Open each profession window once so its recipes are recorded. They are re-read every time you open the window.
 4. Your bags and gear are recorded as you play, and your bank when you visit the banker, for `/items` in Discord.
-5. Opening the guild vault records the bank tabs you can see, for `/bank` in Discord. Guild Master: open Guild Control's bank tab permissions and click through the ranks once, so Discord gets the exact per-rank settings.
+5. Opening the guild vault records the bank tabs you can see and their logs, plus the gold log, for `/bank` and `/bank log` in Discord. Guild Master: open Guild Control's bank tab permissions and click through the ranks once, so Discord gets the exact per-rank settings.
 6. Dungeons and raids you enter are recorded automatically, so the bot learns their exact names and sizes.
-7. Log out or `/reload`. The game writes the data to disk then, and the companion uploads it.
-8. Events scheduled in Discord come to the game calendar. The companion fetches upcoming events (the next 30 days in your Discord servers) into `GuildLink/Events.lua`. At login, if one is new or got a new time, a window lists them with an **Add** button each; the game only lets addons add calendar events from a click. Officers who can make guild events also get **For guild**, which adds a guild announcement the whole guild sees, so everyone else's list shows it as already in the calendar. **Skip** stops an event from being offered at login. Times are server time.
+7. In a raid group inside a raid, the addon records who is in the group (every minute), rare and better loot from the loot messages, and every boss attempt, for `/attendance`, `/loot` and `/progress` in Discord. The more raiders have the addon, the more complete it is; the bot merges everyone's copies.
+8. Log out or `/reload`. The game writes the data to disk then, and the companion uploads it.
+9. Events scheduled in Discord come to the game calendar. The companion fetches upcoming events (the next 30 days in your Discord servers) into `GuildLink/Events.lua`. At login, if one is new or got a new time, a window lists them with an **Add** button each; the game only lets addons add calendar events from a click. Officers who can make guild events also get **For guild**, which adds a guild announcement the whole guild sees, so everyone else's list shows it as already in the calendar. **Skip** stops an event from being offered at login. Times are server time.
 
 Other commands: `/guildlink id <id>`, `/guildlink status` and `/guildlink events` (the events window).
 
@@ -57,10 +58,19 @@ GuildLinkDB = {
                      observed = { [2] = { at = 1790000000, tabs = { [1] = true, [3] = false } } },    -- per rank: tabs it can view
                      settings = { [1] = { at = 1790000000, tabs = { [1] = true, [3] = false } } },     -- per rank, read while the GM browses Guild Control
                      tabs = { [1] = { name = "Mats", scannedAt = 1790000000,
-                                      items = { { slot = 1, itemID = 2840, name = "Copper Bar", count = 20, quality = 1 } } } } },
+                                      items = { { slot = 1, itemID = 2840, name = "Copper Bar", count = 20, quality = 1 } } } },
+                     log = { [1] = { scannedAt = 1790000000,   -- per tab; ago = hours before scannedAt
+                                     entries = { { type = "deposit", name = "Soche Kikuchi", itemID = 2840, itemName = "Copper Bar", count = 20, ago = 3 } } } },
+                     moneyLog = { scannedAt = 1790000000, entries = { { type = "withdraw", name = "Soche Kikuchi", amount = 50000, ago = 0 } } } },
   },
   instances = {   -- dungeons and raids entered, from GetInstanceInfo()
     [2050] = { name = "Hyjal Summit", kind = "raid", maxPlayers = 20, seenAt = 1790000000 },
+  },
+  raids = {       -- the last 40 raids (60 days), merged by the bot with other members' copies
+    ["409:1790000000"] = { instanceID = 409, name = "Molten Core", maxPlayers = 40, region = "EU", startedAt = 1790000000, endedAt = 1790007200,
+      members = { ["Inara Kikuchi"] = { class = "MAGE", firstSeen = 1790000000, lastSeen = 1790007200 } },
+      loot = { { at = 1790001000, name = "Inara Kikuchi", itemID = 16800, itemName = "Arcanist Boots", quality = 4, count = 1 } },
+      encounters = { { id = 663, name = "Lucifron", success = true, size = 40, at = 1790000900 } } },
   },
   calendar = {    -- Discord events by event ID: start time when added or last offered, and skipped ones
     added = { [12] = 1790000000 }, seen = { [12] = 1790000000 }, skipped = { [13] = true },
