@@ -123,13 +123,18 @@ local function CanAddForGuild()
 end
 
 -- Reading day events needs the calendar on the current month; leave it alone
--- while the player has the calendar open.
+-- while the player has the calendar open. Moving the month makes the game
+-- fire CALENDAR_UPDATE_EVENT_LIST at once, so only move it when it's
+-- elsewhere.
 local function PointCalendarAtNow()
   if CalendarFrame and CalendarFrame:IsShown() then return end
-  if C_Calendar.SetAbsMonth then
-    local now = C_DateAndTime.GetCurrentCalendarTime()
-    pcall(C_Calendar.SetAbsMonth, now.month, now.year)
+  if not C_Calendar.SetAbsMonth then return end
+  local now = C_DateAndTime.GetCurrentCalendarTime()
+  if C_Calendar.GetMonthInfo then
+    local ok, shown = pcall(C_Calendar.GetMonthInfo, 0)
+    if ok and shown and shown.month == now.month and shown.year == now.year then return end
   end
+  pcall(C_Calendar.SetAbsMonth, now.month, now.year)
 end
 
 local function Add(e, forGuild)
@@ -240,8 +245,7 @@ local function Build()
   return f
 end
 
-function ns.RefreshEvents()
-  if not ui or not ui:IsShown() then return end
+local function Refresh()
   PointCalendarAtNow()
   local events = Upcoming()
   local forGuild = CanAddForGuild()
@@ -265,6 +269,16 @@ function ns.RefreshEvents()
   ui.footer:SetText(more .. "Times are server time. Sign up in Discord. "
     .. (forGuild and "For guild adds a guild announcement everyone in the guild sees. " or "")
     .. "Open this list again with /guildlink events.")
+end
+
+local refreshing = false
+
+function ns.RefreshEvents()
+  if refreshing or not ui or not ui:IsShown() then return end
+  refreshing = true
+  local ok, err = pcall(Refresh)
+  refreshing = false
+  if not ok then error(err, 0) end
 end
 
 function ns.ShowEvents()
@@ -301,4 +315,14 @@ ns.RegisterEvent("PLAYER_LOGIN", function()
     C_Timer.After(5, OfferAtLogin)
   end)
 end)
-ns.RegisterEvent("CALENDAR_UPDATE_EVENT_LIST", function() ns.RefreshEvents() end)
+-- The game can send this many times in a row, also from inside our own
+-- calendar calls; refresh once, on the next frame.
+local refreshQueued = false
+ns.RegisterEvent("CALENDAR_UPDATE_EVENT_LIST", function()
+  if refreshQueued or not ui or not ui:IsShown() then return end
+  refreshQueued = true
+  C_Timer.After(0, function()
+    refreshQueued = false
+    ns.RefreshEvents()
+  end)
+end)
